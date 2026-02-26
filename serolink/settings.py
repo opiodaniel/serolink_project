@@ -110,6 +110,8 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# use custom user instead of the default one
+AUTH_USER_MODEL = 'accounts.User'
 
 # DRF config
 REST_FRAMEWORK = {
