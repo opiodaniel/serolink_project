@@ -1,0 +1,19 @@
+# --- Python Specific ---
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# --- Django Specific ---
+db.sqlite3
+/static/
+/media/
+/staticfiles/
+.env
+
+# --- Local System Files ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
