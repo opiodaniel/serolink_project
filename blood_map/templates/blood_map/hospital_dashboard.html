@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <div class="card shadow border-0">
+            <div class="card-header bg-dark text-white"><h5>🏥 Hospital Settings</h5></div>
+            <div class="card-body">
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Official Hospital Name</label>
+                        {{ form.name }}
+                    </div>
+                    <button type="submit" class="btn btn-dark w-100">Update Profile</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card shadow border-0">
+            <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Set Main Facility Location</h5>
+                <button id="btn-locate" class="btn btn-sm btn-light">🎯 My GPS</button>
+            </div>
+            <div id="map" style="height: 450px;"></div>
+            <div class="card-footer text-center">
+                <button id="btn-save" class="btn btn-danger px-5">Confirm Location Pin</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var lat = {{ profile.location.y }};
+    var lng = {{ profile.location.x }};
+
+    // 1. Map with Fast CartoDB Tiles
+    var map = L.map('map').setView([lat, lng], 13);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+     // Automatically try to find the user as soon as the page loads
+    map.locate({setView: true, maxZoom: 16});
+
+    map.on('locationerror', function() {
+        console.log("GPS access denied, staying at default location.");
+    });
+
+    var marker = L.marker([lat, lng], {draggable: true}).addTo(map);
+
+    // 2. Search Bar
+    L.Control.geocoder({ defaultMarkGeocode: false, placeholder: "Search for your hospital..." })
+        .on('markgeocode', function(e) {
+            map.setView(e.geocode.center, 16);
+            marker.setLatLng(e.geocode.center);
+        }).addTo(map);
+
+    map.on('click', function(e) { marker.setLatLng(e.latlng); });
+
+    document.getElementById('btn-locate').onclick = function() {
+        map.locate({setView: true, maxZoom: 16});
+    };
+    map.on('locationfound', function(e) { marker.setLatLng(e.latlng); });
+
+    document.getElementById('btn-save').onclick = function() {
+        const pos = marker.getLatLng();
+        const formData = new FormData();
+        formData.append('lat', pos.lat);
+        formData.append('lng', pos.lng);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+        fetch('', { method: 'POST', body: formData })
+        .then(res => res.json())
+        .then(data => alert("Hospital location updated!"));
+    };
+</script>
+{% endblock %}

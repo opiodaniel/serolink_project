@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+<script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+
+<style>
+    #map { height: 400px; width: 100%; border-radius: 12px; border: 2px solid #d32f2f; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <div class="card shadow border-0 mb-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">Medical Info</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Blood Group</label>
+                        {{ form.blood_group }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Phone Number</label>
+                        {{ form.phone_number }}
+                    </div>
+                    <div class="form-check form-switch mb-3">
+                        {{ form.is_available }}
+                        <label class="form-check-label">Available to Donate</label>
+                    </div>
+                    <button type="submit" class="btn btn-dark w-100">Update Info</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card shadow border-0">
+            <div class="card-header bg-danger text-white d-flex justify-content-between">
+                <h5 class="mb-0">Update Location</h5>
+                <button id="btn-locate" class="btn btn-sm btn-light">🎯 GPS</button>
+            </div>
+            <div class="card-body p-0">
+                <div id="map" style="height: 450px;"></div>
+            </div>
+            <div class="card-footer text-center">
+                <button id="btn-save" class="btn btn-danger px-5">Save Pin Location</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Initial coords from the database
+    var lat = {{ profile.location.y }};
+    var lng = {{ profile.location.x }};
+
+    var map = L.map('map').setView([lat, lng], 13);
+
+    // 1. Initialize the Search Control
+    var geocoder = L.Control.geocoder({
+      defaultMarkGeocode: false
+    })
+      .on('markgeocode', function(e) {
+        var bbox = e.geocode.bbox;
+        var poly = L.polygon([
+          bbox.getSouthEast(),
+          bbox.getNorthEast(),
+          bbox.getNorthWest(),
+          bbox.getSouthWest()
+        ]);
+        map.fitBounds(poly.getBounds()); // Zoom to the searched area
+
+        // Move your marker to the searched location automatically
+        marker.setLatLng(e.geocode.center);
+      })
+      .addTo(map);
+
+    // Automatically try to find the user as soon as the page loads
+    map.locate({setView: true, maxZoom: 16});
+
+    map.on('locationerror', function() {
+        console.log("GPS access denied, staying at default location.");
+    });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    // Draggable marker
+    var marker = L.marker([lat, lng], {draggable: true}).addTo(map);
+
+    // Update marker on click
+    map.on('click', function(e) {
+        marker.setLatLng(e.latlng);
+    });
+
+    // Browser Geolocation (GPS)
+    document.getElementById('btn-locate').onclick = function() {
+        map.locate({setView: true, maxZoom: 16});
+    };
+
+    map.on('locationfound', function(e) {
+        marker.setLatLng(e.latlng);
+    });
+
+    // AJAX Save
+    document.getElementById('btn-save').onclick = function() {
+        const pos = marker.getLatLng();
+        const formData = new FormData();
+        formData.append('lat', pos.lat);
+        formData.append('lng', pos.lng);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+        fetch('{% url "update_location" %}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if(data.status === 'success') {
+                alert("Success! Your location has been updated.");
+                window.location.href = "{% url 'home' %}";
+            }
+        });
+    };
+</script>
+{% endblock %}

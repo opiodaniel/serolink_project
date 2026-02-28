@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+    #map { height: 450px; width: 100%; border-radius: 12px; border: 2px solid #ddd; }
+    .donor-card { border-left: 5px solid #d32f2f; transition: 0.3s; }
+    .donor-card:hover { transform: scale(1.01); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <div class="card p-3 mb-4 shadow-sm">
+            <h5>🔍 Refine Search</h5>
+            <form method="GET" class="mt-2">
+                <input type="hidden" name="group" value="{{ selected_group|default:'' }}">
+                
+                <label class="form-label">Radius: <strong>{{ radius }} km</strong></label>
+                <input type="range" name="radius" class="form-range" 
+                       min="1" max="100" value="{{ radius }}" 
+                       oninput="this.nextElementSibling.value = this.value">
+                <output class="badge bg-secondary">{{ radius }}</output> km
+                
+                <button type="submit" class="btn btn-danger btn-sm w-100 mt-3">Update Area</button>
+            </form>
+
+            <hr>
+
+            <h6>Blood Group</h6>
+            <div class="d-flex flex-wrap gap-1">
+                <a href="?radius={{ radius }}" class="btn btn-outline-dark btn-sm {% if not selected_group %}active{% endif %}">All</a>
+                {% for bg in blood_groups %}
+                    <a href="?group={{ bg|urlencode }}&radius={{ radius }}"
+                       class="btn btn-outline-danger btn-sm {% if selected_group == bg %}active{% endif %}">
+                       {{ bg }}
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="donor-list" style="max-height: 500px; overflow-y: auto;">
+            <h6>Nearby Matches ({{ donors|length }})</h6>
+            {% for donor in donors %}
+                <div class="card mb-2 p-2 donor-card">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <strong>{{ donor.user.username }}</strong>
+                        <span class="badge bg-danger">{{ donor.blood_group }}</span>
+                    </div>
+                    <small class="text-muted">📍 {{ donor.distance.km|floatformat:1 }} km away</small>
+                    <div class="mt-2">
+                        <a href="tel:{{ donor.phone_number }}" class="btn btn-sm btn-success">📞 Call</a>
+                        <a href="https://wa.me/{{ donor.phone_number }}" class="btn btn-sm btn-outline-primary">💬 WA</a>
+                    </div>
+                </div>
+            {% empty %}
+                <p class="text-muted">No donors found. Try expanding the radius.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div id="map"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 1. Initialize Map
+    var map = L.map('map').setView([{{ hospital.location.y }}, {{ hospital.location.x }}], 13);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    // 2. Hospital Marker (Red)
+    var hospitalIcon = L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+        iconSize: [25, 41],
+    });
+    L.marker([{{ hospital.location.y }}, {{ hospital.location.x }}], {icon: hospitalIcon})
+        .addTo(map).bindPopup("<b>{{ hospital.name }}</b><br>Your Location").openPopup();
+
+    // 3. Donor Markers
+    {% for donor in donors %}
+        L.marker([{{ donor.location.y }}, {{ donor.location.x }}])
+            .addTo(map)
+            .bindPopup("<b>{{ donor.user.username }}</b><br>Group: {{ donor.blood_group }}<br>{{ donor.distance.km|floatformat:2 }}km away");
+    {% endfor %}
+</script>
+{% endblock %}

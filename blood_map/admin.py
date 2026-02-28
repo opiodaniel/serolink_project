@@ -25,6 +25,16 @@ class DonorAdmin(admin.GISModelAdmin):
 @admin.register(HospitalProfile)
 class HospitalAdmin(admin.GISModelAdmin):
     list_display = ('name', 'location')
+
+    # Coordinates for Uganda (Centering the map)
     default_lat = 1.3733
     default_lon = 32.2903
     default_zoom = 7
+
+    # Uses OpenStreetMap instead of the default vector map
+    gis_widget_kwargs = {
+        'attrs': {
+            'default_lat': 1.3733,
+            'default_lon': 32.2903,
+        }
+    }

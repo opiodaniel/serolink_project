@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+        #map { height: 400px; width: 100%; border-radius: 10px; margin-top: 20px; }
+    </style>
+
+</head>
+<body>
+
+<h2>Search Results for {{ hospital.name }}</h2>
+
+<div>
+    <strong>Filter by Blood Group:</strong>
+    <a href="?">All</a> |
+    <a href="?group=A%2B">A+</a> |
+    <a href="?group=A-">A-</a> |
+    <a href="?group=B%2B">B+</a> |
+    <a href="?group=B-">B-</a> |
+    <a href="?group=O%2B">O+</a> |
+    <a href="?group=O-">O-</a> |
+    <a href="?group=AB%2B">AB+</a> |
+    <a href="?group=AB-">AB-</a>
+</div>
+
+<hr>
+
+
+<form method="GET" style="background: #f4f4f4; padding: 15px; border-radius: 8px;">
+    <input type="hidden" name="group" value="{{ selected_group|default:'' }}">
+
+    <label for="radiusRange"><strong>Search Radius:</strong> {{ radius }} km</label><br>
+    <input type="range" name="radius" id="radiusRange"
+           min="1" max="100" value="{{ radius }}"
+           oninput="this.nextElementSibling.value = this.value">
+    <output>{{ radius }}</output> km
+
+    <button type="submit" style="margin-left: 10px;">Update Search</button>
+</form>
+
+<div style="margin-top: 10px;">
+    <strong>Quick Filter:</strong>
+    <a href="?radius={{ radius }}">All</a> |
+    <a href="?group=O%2B&radius={{ radius }}">O+</a> |
+    <a href="?group=O-&radius={{ radius }}">O-</a>
+    </div>
+
+<hr>
+
+
+<div id="map"></div>
+
+<hr>
+
+{% if selected_group %}
+    <h3>Showing {{ selected_group }} donors within {{ radius }}km</h3>
+{% else %}
+    <h3>Showing all donors within {{ radius }}km</h3>
+{% endif %}
+
+{% if donors %}
+    <ul>
+    {% for donor in donors %}
+        <li>
+            <strong>{{ donor.user.username }}</strong> ({{ donor.blood_group }}) <br>
+            📍 {{ donor.distance.km|floatformat:2 }} km away <br>
+            📞 Contact: {{ donor.phone_number }}
+        </li>
+        <br>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No matches found. Try a different blood group or check back later.</p>
+{% endif %}
+
+
+<script>
+    // 1. Initialize map centered on the Hospital
+    var map = L.map('map').setView([{{ hospital.location.y }}, {{ hospital.location.x }}], 13);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    // 2. Add Hospital Marker (Red)
+    var hospitalIcon = L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+        iconSize: [25, 41],
+    });
+    L.marker([{{ hospital.location.y }}, {{ hospital.location.x }}], {icon: hospitalIcon})
+        .addTo(map).bindPopup("<b>{{ hospital.name }}</b> (You)").openPopup();
+
+    // 3. Add Donor Markers (Blue)
+    {% for donor in donors %}
+        L.marker([{{ donor.location.y }}, {{ donor.location.x }}])
+            .addTo(map)
+            .bindPopup("<b>{{ donor.user.username }}</b><br>Group: {{ donor.blood_group }}<br>{{ donor.distance.km|floatformat:2 }}km away");
+    {% endfor %}
+</script>
+</body>
+</html>
+
+
