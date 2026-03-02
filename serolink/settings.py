@@ -38,10 +38,12 @@ SITE_ROOT = os.path.dirname(os.path.realpath(__file__))
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # DEBUG = True
+
+# python3 -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
 SECRET_KEY = os.getenv('SECRET_KEY')
 DEBUG = os.getenv('DEBUG')
 
-ALLOWED_HOSTS = ["https://serolink.onrender.com", "127.0.0.1"]
+ALLOWED_HOSTS = ["serolink.onrender.com", "127.0.0.1"]
 
 
 # Application definition
