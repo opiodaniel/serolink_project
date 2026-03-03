@@ -3,11 +3,17 @@
 {% block extra_head %}
 <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
 <style>
-    /* Professional Form Styling */
+    /* 1. Fix Mobile Squeezing */
+    @media (max-width: 576px) {
+        .col-11 { width: 100% !important; }
+        .sero-login-card { border-radius: 20px; padding: 10px !important; }
+    }
+
     .login-container {
         min-height: 80vh;
         display: flex;
         align-items: center;
+        padding: 20px 0;
     }
 
     .sero-login-card {
@@ -15,28 +21,26 @@
         border-radius: 28px;
         border: 1px solid rgba(0,0,0,0.02);
         box-shadow: 0 20px 40px rgba(0,0,0,0.06) !important;
+        width: 100%;
     }
 
-    .form-control {
-        background-color: #f9f9f9;
-        border: 2px solid transparent;
-        border-radius: 14px;
-        padding: 12px 18px;
+    /* 2. Direct Targeting to prevent "Invisible" inputs */
+    input.form-control {
+        display: block !important;
+        width: 100% !important;
+        background-color: #f9f9f9 !important;
+        border: 2px solid #eee !important; /* Forces visibility */
+        border-radius: 14px !important;
+        padding: 12px 18px !important;
+        font-weight: 500 !important;
         transition: all 0.3s ease;
-        font-weight: 500;
     }
 
-    .form-control:focus {
-        background-color: #fff;
-        border-color: var(--primary-red);
-        box-shadow: 0 0 0 4px rgba(230, 57, 70, 0.1);
+    input.form-control:focus {
+        background-color: #fff !important;
+        border-color: var(--primary-red) !important;
+        box-shadow: 0 0 0 4px rgba(230, 57, 70, 0.1) !important;
         outline: none;
-    }
-
-    .input-group-text {
-        background: transparent;
-        border: none;
-        color: var(--primary-red);
     }
 
     .auth-icon-header {
@@ -50,6 +54,20 @@
         border-radius: 20px;
         margin: 0 auto 20px;
         font-size: 1.8rem;
+    }
+
+    /* Ensure button color is set since it's a custom class */
+    .btn-primary-sero {
+        background-color: var(--primary-red);
+        color: white;
+        border: none;
+        border-radius: 14px;
+        font-weight: 700;
+    }
+
+    .btn-primary-sero:hover {
+        background-color: #c32f2f;
+        color: white;
     }
 </style>
 {% endblock %}
