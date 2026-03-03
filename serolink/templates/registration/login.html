@@ -1,42 +1,123 @@
 {% extends 'base.html' %}
 
+{% block extra_head %}
+<link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+<style>
+    /* Professional Form Styling */
+    .login-container {
+        min-height: 80vh;
+        display: flex;
+        align-items: center;
+    }
+
+    .sero-login-card {
+        background: #ffffff;
+        border-radius: 28px;
+        border: 1px solid rgba(0,0,0,0.02);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.06) !important;
+    }
+
+    .form-control {
+        background-color: #f9f9f9;
+        border: 2px solid transparent;
+        border-radius: 14px;
+        padding: 12px 18px;
+        transition: all 0.3s ease;
+        font-weight: 500;
+    }
+
+    .form-control:focus {
+        background-color: #fff;
+        border-color: var(--primary-red);
+        box-shadow: 0 0 0 4px rgba(230, 57, 70, 0.1);
+        outline: none;
+    }
+
+    .input-group-text {
+        background: transparent;
+        border: none;
+        color: var(--primary-red);
+    }
+
+    .auth-icon-header {
+        width: 70px;
+        height: 70px;
+        background: rgba(230, 57, 70, 0.08);
+        color: var(--primary-red);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 20px;
+        margin: 0 auto 20px;
+        font-size: 1.8rem;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-5">
-        <div class="card shadow border-0 mt-5">
-            <div class="card-body p-5">
-                <div class="text-center mb-4">
-                    <h2 class="text-danger fw-bold">Welcome Back</h2>
-                    <p class="text-muted">Login to your SeroLink account</p>
+<div class="login-container">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-11 col-sm-9 col-md-7 col-lg-5" data-aos="zoom-in" data-aos-duration="800">
+                <div class="card sero-login-card p-2 p-md-4">
+                    <div class="card-body">
+                        <div class="auth-icon-header">
+                            <i class="bi bi-shield-lock-fill"></i>
+                        </div>
+
+                        <div class="text-center mb-5">
+                            <h2 class="fw-extrabold mb-1" style="letter-spacing: -1px;">Welcome Back</h2>
+                            <p class="text-secondary small">Access your SeroLink rescue dashboard</p>
+                        </div>
+
+                        <form method="post">
+                            {% csrf_token %}
+
+                            {% if form.errors %}
+                                <div class="alert alert-danger rounded-4 border-0 small py-3" data-aos="shake">
+                                    <i class="bi bi-exclamation-circle-fill me-2"></i>
+                                    Invalid username or password.
+                                </div>
+                            {% endif %}
+
+                            <div class="mb-4">
+                                <label for="id_username" class="form-label small fw-bold text-uppercase text-secondary" style="letter-spacing: 0.5px;">Username</label>
+                                <div class="input-group">
+                                    <input type="text" name="username" autofocus maxlength="150" required id="id_username"
+                                           class="form-control" placeholder="Enter your username">
+                                </div>
+                            </div>
+
+                            <div class="mb-5">
+                                <label for="id_password" class="form-label small fw-bold text-uppercase text-secondary" style="letter-spacing: 0.5px;">Password</label>
+                                <input type="password" name="password" required id="id_password"
+                                       class="form-control" placeholder="••••••••">
+                            </div>
+
+                            <button type="submit" class="btn btn-primary-sero btn-lg w-100 py-3 mb-4 shadow-sm">
+                                Sign In <i class="bi bi-arrow-right ms-2"></i>
+                            </button>
+
+                            <div class="text-center">
+                                <p class="small text-secondary mb-0">
+                                    New to SeroLink?
+                                    <a href="{% url 'signup' %}" class="text-danger fw-bold text-decoration-none ms-1">Create Account</a>
+                                </p>
+                            </div>
+                        </form>
+                    </div>
                 </div>
 
-                <form method="post">
-                    {% csrf_token %}
-                    
-                    {% if form.errors %}
-                        <div class="alert alert-danger">
-                            Your username and password didn't match. Please try again.
-                        </div>
-                    {% endif %}
-
-                    <div class="mb-3">
-                        <label for="id_username" class="form-label">Username</label>
-                        <input type="text" name="username" autofocus maxlength="150" required id="id_username" class="form-control">
-                    </div>
-
-                    <div class="mb-4">
-                        <label for="id_password" class="form-label">Password</label>
-                        <input type="password" name="password" required id="id_password" class="form-control">
-                    </div>
-
-                    <button type="submit" class="btn btn-danger btn-lg w-100 mb-3">Login</button>
-                    
-                    <div class="text-center">
-                        <p class="small text-muted">Don't have an account? <a href="{% url 'signup' %}" class="text-danger">Sign up here</a></p>
-                    </div>
-                </form>
+                <p class="text-center text-muted mt-4" style="font-size: 0.75rem;">
+                    <i class="bi bi-lock-fill"></i> Securely encrypted end-to-end connection
+                </p>
             </div>
         </div>
     </div>
 </div>
+
+<script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+<script>
+  AOS.init({ once: true });
+</script>
 {% endblock %}

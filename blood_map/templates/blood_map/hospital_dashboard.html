@@ -5,35 +5,125 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+
+<style>
+    :root { --sero-red: #d32f2f; }
+
+    .dashboard-header {
+        background: white;
+        border-radius: 20px;
+        padding: 25px;
+        margin-bottom: 25px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        border-left: 8px solid var(--sero-red);
+    }
+
+    .map-card {
+        border-radius: 25px;
+        overflow: hidden;
+        border: none;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+
+    #map {
+        height: 450px;
+        width: 100%;
+        cursor: crosshair;
+    }
+
+    .gps-btn-floating {
+        position: absolute;
+        bottom: 100px;
+        right: 20px;
+        z-index: 1000;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
+    .form-control {
+        border-radius: 12px;
+        padding: 12px;
+        border: 2px solid #eee;
+        font-weight: 500;
+    }
+
+    .form-control:focus {
+        border-color: var(--sero-red);
+        box-shadow: 0 0 0 4px rgba(211, 47, 47, 0.1);
+    }
+
+    /* Professional Search Bar Styling */
+    .leaflet-control-geocoder {
+        border-radius: 12px !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+        border: none !important;
+        margin-top: 15px !important;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-4">
-        <div class="card shadow border-0">
-            <div class="card-header bg-dark text-white"><h5>🏥 Hospital Settings</h5></div>
-            <div class="card-body">
-                <form method="POST">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <label class="form-label">Official Hospital Name</label>
-                        {{ form.name }}
-                    </div>
-                    <button type="submit" class="btn btn-dark w-100">Update Profile</button>
-                </form>
-            </div>
+<div class="container py-4">
+    <div class="dashboard-header d-flex justify-content-between align-items-center">
+        <div>
+            <h4 class="fw-bold mb-1">Hospital Management</h4>
+            <p class="text-muted small mb-0">Registered Facility: <strong>{{ profile.name }}</strong></p>
+        </div>
+        <div class="d-none d-md-block">
+            <a href="{% url 'find_donors' %}" class="btn btn-outline-danger rounded-pill px-4 fw-bold small">
+                <i class="bi bi-search me-2"></i>Find Donors
+            </a>
         </div>
     </div>
 
-    <div class="col-md-8">
-        <div class="card shadow border-0">
-            <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Set Main Facility Location</h5>
-                <button id="btn-locate" class="btn btn-sm btn-light">🎯 My GPS</button>
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm p-4" style="border-radius: 20px;">
+                <h6 class="fw-bold mb-4 text-uppercase small text-muted">Facility Settings</h6>
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold text-secondary">Official Hospital Name</label>
+                        {{ form.name }}
+                        <div class="form-text small">This name will be visible to donors when you contact them.</div>
+                    </div>
+                    <button type="submit" class="btn btn-dark w-100 py-3 rounded-3 fw-bold shadow-sm">
+                        Update Facility Info
+                    </button>
+                </form>
+
+                <hr class="my-4">
+
+                <div class="bg-light p-3 rounded-3">
+                    <h6 class="small fw-bold mb-2">Helpful Tip</h6>
+                    <p class="small text-muted mb-0">Ensure your location pin is exactly on your emergency entrance to give donors accurate directions.</p>
+                </div>
             </div>
-            <div id="map" style="height: 450px;"></div>
-            <div class="card-footer text-center">
-                <button id="btn-save" class="btn btn-danger px-5">Confirm Location Pin</button>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card map-card position-relative">
+                <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+                    <span class="fw-bold"><i class="bi bi-hospital text-danger me-2"></i>Set Facility Pin</span>
+                    <small class="text-muted">Search or drag marker to your location</small>
+                </div>
+
+                <div id="map"></div>
+
+                <button id="btn-locate" class="btn btn-danger gps-btn-floating">
+                    <i class="bi bi-crosshair"></i>
+                </button>
+
+                <div class="card-footer bg-white p-3 border-0">
+                    <button id="btn-save" class="btn btn-danger w-100 py-3 rounded-3 fw-bold shadow-sm">
+                        <i class="bi bi-check-circle-fill me-2"></i>Confirm Facility Location
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -43,35 +133,52 @@
     var lat = {{ profile.location.y }};
     var lng = {{ profile.location.x }};
 
-    // 1. Map with Fast CartoDB Tiles
-    var map = L.map('map').setView([lat, lng], 13);
+    // Initialize Map
+    var map = L.map('map', { zoomControl: false }).setView([lat, lng], 15);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
 
-     // Automatically try to find the user as soon as the page loads
-    map.locate({setView: true, maxZoom: 16});
+    L.control.zoom({ position: 'bottomleft' }).addTo(map);
 
-    map.on('locationerror', function() {
-        console.log("GPS access denied, staying at default location.");
+    // Hospital Marker (Red)
+    var hospitalIcon = L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+        iconSize: [25, 41], iconAnchor: [12, 41], shadowSize: [41, 41]
     });
 
-    var marker = L.marker([lat, lng], {draggable: true}).addTo(map);
+    var marker = L.marker([lat, lng], { draggable: true, icon: hospitalIcon }).addTo(map);
 
-    // 2. Search Bar
-    L.Control.geocoder({ defaultMarkGeocode: false, placeholder: "Search for your hospital..." })
-        .on('markgeocode', function(e) {
-            map.setView(e.geocode.center, 16);
-            marker.setLatLng(e.geocode.center);
-        }).addTo(map);
+    // Auto-locate on Load
+    map.locate({setView: true, maxZoom: 16});
 
+    // Geocoder Search
+    L.Control.geocoder({
+        defaultMarkGeocode: false,
+        placeholder: "Search for your facility..."
+    })
+    .on('markgeocode', function(e) {
+        map.setView(e.geocode.center, 17);
+        marker.setLatLng(e.geocode.center);
+    }).addTo(map);
+
+    // Map Interactions
     map.on('click', function(e) { marker.setLatLng(e.latlng); });
 
     document.getElementById('btn-locate').onclick = function() {
         map.locate({setView: true, maxZoom: 16});
     };
+
     map.on('locationfound', function(e) { marker.setLatLng(e.latlng); });
 
+    // AJAX Save with Feedback
     document.getElementById('btn-save').onclick = function() {
+        const btn = this;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Updating...';
+        btn.disabled = true;
+
         const pos = marker.getLatLng();
         const formData = new FormData();
         formData.append('lat', pos.lat);
@@ -80,7 +187,15 @@
 
         fetch('', { method: 'POST', body: formData })
         .then(res => res.json())
-        .then(data => alert("Hospital location updated!"));
+        .then(data => {
+            btn.className = "btn btn-success w-100 py-3 rounded-3";
+            btn.innerHTML = '<i class="bi bi-check-lg me-2"></i>Location Saved!';
+            setTimeout(() => {
+                btn.className = "btn btn-danger w-100 py-3 rounded-3";
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }, 2000);
+        });
     };
 </script>
 {% endblock %}
