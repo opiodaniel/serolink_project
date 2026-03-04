@@ -5,9 +5,8 @@ from blood_map.models import DonorProfile, HospitalProfile
 from django.contrib.gis.geos import Point
 from django.shortcuts import redirect
 from django.contrib.auth.decorators import login_required
+import uuid
 
-
-# accounts/views.py
 
 def signup_view(request):
     if request.method == 'POST':
@@ -17,7 +16,7 @@ def signup_view(request):
             if user.role == 'donor':
                 DonorProfile.objects.create(
                     user=user,
-                    location=Point(32.2903, 1.3733),
+                    location=Point(0, 0),
                     phone_number="+256700000000", # Temporary placeholder
                     blood_group="O+"              # Default placeholder
                 )
@@ -25,7 +24,8 @@ def signup_view(request):
                 HospitalProfile.objects.create(
                     user=user,
                     name=user.username,
-                    location=Point(32.2903, 1.3733)
+                    location=Point(0, 0),
+                    license_number = f"TEMP-{uuid.uuid4().hex[:8]}"  # Creates a unique temp ID
                 )
             login(request, user)
             return redirect('home')

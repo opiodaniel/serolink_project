@@ -5,6 +5,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <style>
     :root { --sero-red: #d32f2f; }
@@ -130,11 +131,26 @@
 </div>
 
 <script>
-    var lat = {{ profile.location.y }};
-    var lng = {{ profile.location.x }};
+
+    // 1. Define your "Default" coordinate constants
+    const DEFAULT_LAT = 1.3733;
+    const DEFAULT_LNG = 32.2903;
+
+    // Grab coordinates from Django context
+    var savedLat = {{ profile.location.y|default:0 }};
+    var savedLng = {{ profile.location.x|default:0 }};
+
+    // Logic: Check if the hospital has ever pinned a location
+    // (Assuming 0,0 is the default/empty state)
+    var hasLocation = (savedLat !== 0 && savedLng !== 0);
+
+    // If no location, we can start at a general default (e.g., Kampala)
+    // or wait for GPS to find them.
+    var startLat = hasLocation ? savedLat : 0.3476;
+    var startLng = hasLocation ? savedLng : 32.5825;
 
     // Initialize Map
-    var map = L.map('map', { zoomControl: false }).setView([lat, lng], 15);
+    var map = L.map('map', { zoomControl: false }).setView([startLat, startLng], hasLocation ? 16 : 13);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap'
@@ -142,16 +158,27 @@
 
     L.control.zoom({ position: 'bottomleft' }).addTo(map);
 
-    // Hospital Marker (Red)
     var hospitalIcon = L.icon({
         iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
         iconSize: [25, 41], iconAnchor: [12, 41], shadowSize: [41, 41]
     });
 
-    var marker = L.marker([lat, lng], { draggable: true, icon: hospitalIcon }).addTo(map);
+    var marker = L.marker([startLat, startLng], { draggable: true, icon: hospitalIcon }).addTo(map);
 
-    // Auto-locate on Load
-    map.locate({setView: true, maxZoom: 16});
+    // --- NEW: ALERT LOGIC ---
+    window.onload = function() {
+        if (!hasLocation) {
+            Swal.fire({
+                title: 'Action Required',
+                text: 'Please pin your exact hospital location on the map to accurately locate nearby blood donors.',
+                icon: 'warning',
+                confirmButtonColor: '#d32f2f',
+                confirmButtonText: 'Understood'
+            });
+            // Try to help them find their current spot immediately
+            map.locate({setView: true, maxZoom: 16});
+        }
+    };
 
     // Geocoder Search
     L.Control.geocoder({
@@ -163,20 +190,18 @@
         marker.setLatLng(e.geocode.center);
     }).addTo(map);
 
-    // Map Interactions
+    // Interaction logic
     map.on('click', function(e) { marker.setLatLng(e.latlng); });
-
     document.getElementById('btn-locate').onclick = function() {
         map.locate({setView: true, maxZoom: 16});
     };
-
     map.on('locationfound', function(e) { marker.setLatLng(e.latlng); });
 
-    // AJAX Save with Feedback
+    // AJAX Save
     document.getElementById('btn-save').onclick = function() {
         const btn = this;
         const originalText = btn.innerHTML;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Updating...';
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
         btn.disabled = true;
 
         const pos = marker.getLatLng();
@@ -189,7 +214,7 @@
         .then(res => res.json())
         .then(data => {
             btn.className = "btn btn-success w-100 py-3 rounded-3";
-            btn.innerHTML = '<i class="bi bi-check-lg me-2"></i>Location Saved!';
+            btn.innerHTML = '<i class="bi bi-check-lg me-2"></i>Location Verified!';
             setTimeout(() => {
                 btn.className = "btn btn-danger w-100 py-3 rounded-3";
                 btn.innerHTML = originalText;

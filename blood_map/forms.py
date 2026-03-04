@@ -15,7 +15,8 @@ class DonorProfileForm(forms.ModelForm):
 class HospitalProfileForm(forms.ModelForm):
     class Meta:
         model = HospitalProfile
-        fields = ['name']
+        fields = ['name', 'license_number']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Hospital Name'}),
+            'license_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'license number'}),
         }
