@@ -110,7 +110,7 @@
         <div class="col-lg-8">
             <div class="card map-card position-relative">
                 <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
-                    <span class="fw-bold"><i class="bi bi-hospital text-danger me-2"></i>Set Facility Pin</span>
+                    <span class="fw-bold"><i class="bi bi-hospital text-danger me-2"></i>pin Location</span>
                     <small class="text-muted">Search or drag marker to your location</small>
                 </div>
 
@@ -131,10 +131,6 @@
 </div>
 
 <script>
-
-    // 1. Define your "Default" coordinate constants
-    const DEFAULT_LAT = 1.3733;
-    const DEFAULT_LNG = 32.2903;
 
     // Grab coordinates from Django context
     var savedLat = {{ profile.location.y|default:0 }};
@@ -197,30 +193,90 @@
     };
     map.on('locationfound', function(e) { marker.setLatLng(e.latlng); });
 
-    // AJAX Save
-    document.getElementById('btn-save').onclick = function() {
+
+    // 1. Helper to get Address from Coordinates (Reverse Geocoding)
+    async function getAddress(lat, lng) {
+        try {
+            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
+            const data = await response.json();
+            return data.display_name.split(',').slice(0, 3).join(','); // Get first 3 parts of address for brevity
+        } catch (error) {
+            return "Unknown Location";
+        }
+    }
+
+    // 2. Modified Save Logic
+    document.getElementById('btn-save').onclick = async function() {
         const btn = this;
         const originalText = btn.innerHTML;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
-        btn.disabled = true;
-
         const pos = marker.getLatLng();
-        const formData = new FormData();
-        formData.append('lat', pos.lat);
-        formData.append('lng', pos.lng);
-        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
 
-        fetch('', { method: 'POST', body: formData })
-        .then(res => res.json())
-        .then(data => {
-            btn.className = "btn btn-success w-100 py-3 rounded-3";
-            btn.innerHTML = '<i class="bi bi-check-lg me-2"></i>Location Verified!';
-            setTimeout(() => {
-                btn.className = "btn btn-danger w-100 py-3 rounded-3";
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-            }, 2000);
-        });
+        const saveLocation = () => {
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+            btn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('lat', pos.lat);
+            formData.append('lng', pos.lng);
+            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+            fetch('', { method: 'POST', body: formData })
+            .then(res => res.json())
+            .then(data => {
+                btn.className = "btn btn-success w-100 py-3 rounded-3";
+                btn.innerHTML = '<i class="bi bi-check-lg me-2"></i>Location Verified!';
+
+                // Update global variables for next time
+                savedLat = pos.lat;
+                savedLng = pos.lng;
+                hasLocation = true;
+
+                setTimeout(() => {
+                    btn.className = "btn btn-danger w-100 py-3 rounded-3";
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }, 2000);
+            });
+        };
+
+        if (hasLocation) {
+            // Show loading state while we fetch addresses
+            Swal.fire({
+                title: 'Fetching details...',
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            // Get readable names for both old and new spots
+            const oldAddress = await getAddress(savedLat, savedLng);
+            const newAddress = await getAddress(pos.lat, pos.lng);
+
+            Swal.fire({
+                title: 'Confirm Relocation',
+                html: `You are moving the facility pin:<br><br>
+                       <div class="text-start p-3 bg-light rounded-3 border">
+                            <small class="text-muted d-block">Current Location:</small>
+                            <strong class="d-block mb-2">${oldAddress}</strong>
+                            <hr>
+                            <small class="text-danger d-block">New Location:</small>
+                            <strong class="d-block">${newAddress}</strong>
+                       </div>`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#d32f2f',
+                confirmButtonText: 'Yes, Confirm Move',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    saveLocation();
+                } else {
+                    // If they cancel, move the marker back to the saved position
+                    marker.setLatLng([savedLat, savedLng]);
+                    map.setView([savedLat, savedLng]);
+                }
+            });
+        } else {
+            saveLocation();
+        }
     };
 </script>
 {% endblock %}
