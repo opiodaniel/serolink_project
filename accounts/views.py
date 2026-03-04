@@ -38,6 +38,6 @@ def signup_view(request):
 @login_required
 def profile_redirect_view(request):
     if request.user.role == 'donor':
-        return redirect('update_location') # Send donors to their map
+        return redirect('donor_dashboard') # Send donors to their map
     else:
         return redirect('find_donors') # Send hospitals to the search

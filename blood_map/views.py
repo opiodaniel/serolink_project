@@ -71,7 +71,7 @@ def find_nearest_donors(request):
 
 
 @login_required
-def update_location_view(request):
+def donor_dashboard(request):
     # 1. Check if the user is a donor
     if request.user.role != 'donor':
         return render(request, 'blood_map/error.html', {
@@ -99,12 +99,12 @@ def update_location_view(request):
         form = DonorProfileForm(request.POST, instance=profile)
         if form.is_valid():
             form.save()
-            return redirect('update_location')
+            return redirect('donor_dashboard')
 
     else:
         form = DonorProfileForm(instance=profile)
 
-    return render(request, 'blood_map/update_location.html', {
+    return render(request, 'blood_map/donor_dashboard.html', {
         'profile': profile,
         'form': form
     })

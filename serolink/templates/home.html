@@ -85,7 +85,7 @@
                     {% elif user.role == 'hospital' %}
                         <a href="{% url 'find_donors' %}" class="btn btn-primary-sero btn-lg px-5">Find Blood Now</a>
                     {% elif user.role == 'donor' %}
-                        <a href="{% url 'update_location' %}" class="btn btn-primary-sero btn-lg px-5">Update Location</a>
+                        <a href="{% url 'donor_dashboard' %}" class="btn btn-primary-sero btn-lg px-5">Update Location</a>
                     {% endif %}
                 </div>
             </div>

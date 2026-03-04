@@ -70,15 +70,11 @@
 
 {% block content %}
 <div class="container py-4">
+
     <div class="dashboard-header d-flex justify-content-between align-items-center">
         <div>
             <h4 class="fw-bold mb-1">Hospital Management</h4>
             <p class="text-muted small mb-0">Registered Facility: <strong>{{ profile.name }}</strong></p>
-        </div>
-        <div class="d-none d-md-block">
-            <a href="{% url 'find_donors' %}" class="btn btn-outline-danger rounded-pill px-4 fw-bold small">
-                <i class="bi bi-search me-2"></i>Find Donors
-            </a>
         </div>
     </div>
 
@@ -109,9 +105,17 @@
 
         <div class="col-lg-8">
             <div class="card map-card position-relative">
+
                 <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
-                    <span class="fw-bold"><i class="bi bi-hospital text-danger me-2"></i>pin Location</span>
-                    <small class="text-muted">Search or drag marker to your location</small>
+                    <div>
+                        <span class="fw-bold d-block"><i class="bi bi-pin-map-fill text-danger me-2"></i>Pin Your Location</span>
+                        {% if profile.location.x != 0 %}
+                        <small class="text-muted" style="font-size: 0.75rem;">
+                            Current: <span id="current-location-text" class="fw-bold text-dark">Searching address...</span>
+                        </small>
+                        {% endif %}
+                    </div>
+                    <small class="text-muted d-none d-md-block">Search or Drag the marker to your building</small>
                 </div>
 
                 <div id="map"></div>
@@ -161,9 +165,10 @@
 
     var marker = L.marker([startLat, startLng], { draggable: true, icon: hospitalIcon }).addTo(map);
 
-    // --- NEW: ALERT LOGIC ---
+   // --- MERGED HOSPITAL ONLOAD LOGIC ---
     window.onload = function() {
         if (!hasLocation) {
+            // 1. Alert for Hospitals that haven't pinned yet
             Swal.fire({
                 title: 'Action Required',
                 text: 'Please pin your exact hospital location on the map to accurately locate nearby blood donors.',
@@ -171,8 +176,18 @@
                 confirmButtonColor: '#d32f2f',
                 confirmButtonText: 'Understood'
             });
-            // Try to help them find their current spot immediately
+
+            // Help them find their current coordinates immediately
             map.locate({setView: true, maxZoom: 16});
+
+        } else {
+            // 2. For Hospitals with a location, update the header with the address
+            const el = document.getElementById('current-location-text');
+            if (el) {
+                getAddress(savedLat, savedLng).then(address => {
+                    el.innerText = address;
+                });
+            }
         }
     };
 
@@ -192,7 +207,6 @@
         map.locate({setView: true, maxZoom: 16});
     };
     map.on('locationfound', function(e) { marker.setLatLng(e.latlng); });
-
 
     // 1. Helper to get Address from Coordinates (Reverse Geocoding)
     async function getAddress(lat, lng) {

@@ -102,7 +102,7 @@
                 <ul class="navbar-nav ms-auto align-items-center">
                     {% if user.is_authenticated %}
                         {% if user.role == 'donor' %}
-                            <li class="nav-item"><a class="nav-link" href="{% url 'update_location' %}">Location</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{% url 'donor_dashboard' %}">Location</a></li>
                         {% endif %}
                         {% if user.role == 'hospital' %}
                             <li class="nav-item"><a class="nav-link" href="{% url 'hospital_dashboard' %}">Facility</a></li>
